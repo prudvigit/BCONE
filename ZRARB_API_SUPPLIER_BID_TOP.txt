@@ -1,0 +1,73 @@
+*&---------------------------------------------------------------------*
+*& Include          ZRARB_API_SRPRFX_DATA_TOP
+*&---------------------------------------------------------------------*
+
+TABLES: ekko.
+
+TYPES: BEGIN OF gty_msg_log,
+         text    TYPE string,
+         message TYPE string,
+       END OF gty_msg_log,
+       gtt_msg_log TYPE STANDARD TABLE OF gty_msg_log WITH DEFAULT KEY.
+
+
+TYPES: BEGIN OF gty_rfxid,
+         rfx_id         TYPE zrfx_id,
+         rfx_event_code TYPE zrfx_event_type,
+       END OF gty_rfxid,
+       gtt_rfxid TYPE STANDARD TABLE OF gty_rfxid WITH EMPTY KEY.
+
+CONSTANTS: gc_apiid_evt     TYPE zde_apiid VALUE '050',
+           gc_token_type    TYPE string VALUE 'Bearer',
+           gc_tokenid       TYPE zde_apiid VALUE '000',
+           gc_p_api_key     TYPE string VALUE 'apiKey',
+           gc_p_auth        TYPE string VALUE 'Authorization',
+           gc_p_con_typ     TYPE string VALUE 'Content-Type',
+           gc_auth_cont_typ TYPE string VALUE 'application/x-www-form-urlencoded',
+           gc_json_cont_typ TYPE string VALUE 'application/json',
+           gc_xml_cont_typ  TYPE string VALUE 'application/xml',
+           gc_cdata_auth    TYPE string VALUE 'grant_type=openapi_2lo',
+           gc_oauth_typ     TYPE string VALUE 'Basic',
+           gc_param_realm   TYPE string VALUE 'realm',
+           gc_qry_filter    TYPE string VALUE '$filter'.
+
+
+DATA: gv_realm         TYPE  arbcig_realm,
+      gs_api_evt       TYPE  ztarb_api_links,
+      gs_api_token     TYPE  ztarb_api_links,
+      go_api           TYPE REF TO if_http_client,
+      gt_sreq_api      TYPE REF TO data,
+      gt_sprj_api      TYPE REF TO data,
+      gt_rfxdoc_api    TYPE REF TO data,
+      gt_api_response  TYPE REF TO data,
+      gt_rfxid         TYPE gtt_rfxid,
+      gv_sp_token      TYPE string,
+      gv_api_key       TYPE string,
+      gv_sr_token      TYPE string,
+      gv_cus_rfx_token TYPE string,
+      gv_pagetoken     TYPE string,
+      flg_contract     TYPE flag,
+      gt_srprfx        TYPE STANDARD TABLE OF ztarb_srprfx,
+      gt_suppbids      TYPE STANDARD TABLE OF ztarb_supp_bids,
+      gv_fromdate      TYPE string,
+      gv_todate        TYPE string.
+
+DATA: gt_header_fields TYPE tihttpnvp.
+
+DATA: gt_msg_log TYPE gtt_msg_log,
+      gs_msg_log TYPE gty_msg_log.
+
+
+CLASS lcl_ariba_api DEFINITION.
+
+  PUBLIC SECTION.
+    CLASS-DATA: go_instance TYPE REF TO lcl_ariba_api.
+    CLASS-METHODS:
+      get_instance RETURNING VALUE(lr_result) TYPE REF TO lcl_ariba_api.
+
+    METHODS: display_output IMPORTING ir_data TYPE REF TO data.
+
+
+ENDCLASS.
+
+DATA: go_ariba_api TYPE REF TO lcl_ariba_api.

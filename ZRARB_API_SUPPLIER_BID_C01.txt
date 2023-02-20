@@ -1,0 +1,50 @@
+*&---------------------------------------------------------------------*
+*& Include          ZRARB_API_SRPRFX_DATA_C01
+*&---------------------------------------------------------------------*
+
+
+CLASS lcl_ariba_api IMPLEMENTATION.
+
+* Get singletone object instance
+  METHOD get_instance.
+    IF go_ariba_api IS NOT BOUND.
+      CREATE OBJECT go_ariba_api.
+    ENDIF.
+    lr_result = go_ariba_api.
+
+  ENDMETHOD.
+
+  METHOD display_output.
+
+    DATA: ls_layout   TYPE slis_layout_alv,
+          lt_fieldcat TYPE slis_t_fieldcat_alv.
+
+    FIELD-SYMBOLS: <lft_data> TYPE STANDARD TABLE.
+
+    IF ir_data IS BOUND.
+      ASSIGN ir_data->* TO <lft_data>.
+
+      lt_fieldcat = VALUE #( ( col_pos = 1
+                                fieldname = |TEXT|
+                                seltext_l = |API Request Name| )
+                                ( col_pos = 2
+                                fieldname = |MESSAGE|
+                                seltext_l = |Message| ) ).
+
+
+    ENDIF.
+
+    ls_layout-colwidth_optimize = 'X'.
+    SET PF-STATUS 'STANDARD'.
+
+    CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+      EXPORTING
+        it_fieldcat = lt_fieldcat
+        is_layout   = ls_layout
+      TABLES
+        t_outtab    = <lft_data>
+      EXCEPTIONS
+        OTHERS      = 0.
+  ENDMETHOD.
+
+ENDCLASS.
