@@ -1,0 +1,89 @@
+*&---------------------------------------------------------------------*
+*& Report ZRARB_API_SRPRFX_DATA
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zrarb_api_supplier_bid MESSAGE-ID zariba_msg.
+
+INCLUDE zrarb_api_supplier_bid_top.
+INCLUDE zrarb_api_supplier_bid_s01.
+INCLUDE zrarb_api_supplier_bid_f01.
+INCLUDE zrarb_api_supplier_bid_c01.
+
+************************************************************************
+* INITIALIZATION processes
+************************************************************************
+INITIALIZATION.
+* Clear global variables
+*  PERFORM f_clear_global.
+
+* Make from and to date mandatory
+*AT SELECTION-SCREEN OUTPUT.
+*  LOOP AT SCREEN.
+*    IF screen-name = 'S_AEDAT-LOW' OR screen-name = 'S_AEDAT-HIGH'.
+*      screen-required = 1.
+*      MODIFY SCREEN.
+*    ENDIF.
+*  ENDLOOP.
+
+************************************************************************
+* START OF SELECTION processes
+************************************************************************
+START-OF-SELECTION.
+  go_ariba_api = lcl_ariba_api=>get_instance( ).
+* Define API specific filter date format
+  PERFORM f_date_format.
+
+* Fetch api details for all relevant APIs
+  PERFORM f_fetch_api_param.
+
+* Fetch Ariba Sourcing Request, Sourcing Project and RFX Document
+
+  PERFORM f_get_token USING gs_api_evt-oauthsec
+                      CHANGING gv_api_key.
+
+  PERFORM f_fetch_docids.
+
+  LOOP AT gt_srprfx INTO DATA(ls_srprfx).
+* Fetching Event details
+    CLEAR gv_sp_token.
+    PERFORM f_get_event_data USING gs_api_evt ls_srprfx.
+  ENDLOOP.
+
+  LOOP AT gt_rfxid INTO DATA(ls_rfxid).
+* Fetching supplier bid details
+    CLEAR gv_sp_token.
+        DATA(lv_ratelimit_sec) = VALUE #( gt_header_fields[ name = 'x-ratelimit-remaining-second' ]-value OPTIONAL ).
+    IF lv_ratelimit_sec EQ '0'.
+      WAIT UP TO 1 SECONDS. " Wait for one second
+    ENDIF.
+
+    DATA(lv_ratelimit_min) = VALUE #( gt_header_fields[ name = 'x-ratelimit-remaining-minute' ]-value OPTIONAL ).
+    IF lv_ratelimit_min EQ '0'.
+      WAIT UP TO 60 SECONDS. "Wait for 60 seconds
+    ENDIF.
+
+    DATA(lv_ratelimit_hr) = VALUE #( gt_header_fields[ name = 'x-ratelimit-remaining-hour' ]-value OPTIONAL ).
+    IF lv_ratelimit_hr EQ '0'.
+      WAIT UP TO 3600 SECONDS. "Wait for 1hour
+    ENDIF.
+    PERFORM f_get_supplier_data USING gs_api_evt ls_rfxid.
+  ENDLOOP.
+
+* Update Sourcing Request
+  IF NOT gt_suppbids IS INITIAL.
+    PERFORM f_update_suppbids.
+  ELSE.
+    gs_msg_log-text = TEXT-t02.
+    gs_msg_log-message = TEXT-i01.
+    APPEND gs_msg_log TO gt_msg_log.
+  ENDIF.
+
+ENd-of-SELECTION.
+
+  IF NOT gt_msg_log IS INITIAL.
+    DATA: lr_msg_data TYPE REF TO gtt_msg_log.
+    CREATE DATA lr_msg_data.
+    lr_msg_data->* = gt_msg_log.
+    go_ariba_api->display_output( ir_data = lr_msg_data ).
+  ENDIF.
